@@ -14,6 +14,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -527,6 +529,11 @@
 
     <script>
         // ========== CONFIGURATIE & STATE ==========
+        // Supabase initialisatie
+        const supabaseUrl = 'https://kwsuqzbqzsmgkjaslwkz.supabase.co';
+        const supabaseAnonKey = 'sb_publishable_5hdl73a9-jNd9n3lnsYVyQ_dMYgiSLA';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
         let map, pickupMarker, destinationMarker, routeLayer;
         let currentStep = 1;
         let selectedVehicle = null;
@@ -830,7 +837,7 @@
                           (now.getMonth() + 1).toString().padStart(2, '0') +
                           now.getDate().toString().padStart(2, '0');
             const random = Math.floor(Math.random() * 9999) + 1;
-            return `FX-${dateStr}-${random.toString().padStart(4, '0')}`;
+            return `H1-${dateStr}-${random.toString().padStart(4, '0')}`;
         }
 
         function collectBookingData() {
@@ -853,7 +860,7 @@
             const paymentMethod = document.querySelector('input[name="payment-method"]:checked')?.value || 'cash';
 
             return {
-                template_code: "T1",
+                template_code: "H1",
                 booking_number: generateBookingNumber(),
                 first_name: firstName,
                 last_name: lastName,
@@ -996,7 +1003,7 @@
             downloadAnchorNode.remove();
         }
 
-        function handleFormSubmit(e) {
+        async function handleFormSubmit(e) {
             e.preventDefault();
 
             // Handmatige validatie voor stap 4
@@ -1012,6 +1019,22 @@
             }
 
             const bookingData = collectBookingData();
+
+            // Opslaan naar Supabase
+            try {
+                const { data, error } = await supabaseClient
+                    .from('bookings')
+                    .insert([bookingData]);
+
+                if (error) {
+                    console.error('Supabase error:', error);
+                } else {
+                    console.log('Booking saved to Supabase:', data);
+                }
+            } catch (err) {
+                console.error('Network error:', err);
+            }
+
             showBookingFiche(bookingData);
             return false;
         }
